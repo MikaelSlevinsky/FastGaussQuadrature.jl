@@ -1,6 +1,12 @@
+gaussjacobi(n::Number, a::Number, b::Number) =
+    gaussjacobi(Int(n),Float64(a),Float64(b))
+
+
 function gaussjacobi(n::Int, a::Float64, b::Float64)
     #GAUSS-JACOBI QUADRATURE NODES AND WEIGHTS
-    if a == 0. && b == 0.
+    if n < 0
+        error("gaussjacobi($n,$a,$b) not defined: n must be positive.")
+    elseif a == 0. && b == 0.
         gausslegendre(n)
     elseif a == -0.5 && b == -0.5
         gausschebyshev(n, 1)
@@ -17,13 +23,13 @@ function gaussjacobi(n::Int, a::Float64, b::Float64)
     elseif min(a,b) <= -1.
         error("The Jacobi parameters correspond to a nonintegrable weight function")
     elseif n <= 100 && max(a,b) < 5.
-        JacobiRec(n, a, b)        
+        JacobiRec(n, a, b)
     elseif n > 100 && max(a,b) < 5.
         JacobiAsy(n, a, b)
     elseif n <= 4000 && max(a,b)>=5.
         JacobiGW(n, a, b)
     else
-        error("1st argument must be a positive integer.")
+        error("gaussjacobi($n,$a,$b) is not implemented: n must be ≤ 4000 for max(a,b)≥5.")
     end
 end
 
@@ -360,7 +366,7 @@ function boundary(n::Int, a::Float64, b::Float64, npts)
     return x, w
 end
 
-function JacobiGW( n::Int64, a::Float64, b::Float64 ) 
+function JacobiGW( n::Int64, a::Float64, b::Float64 )
     # Golub-Welsh for Gauss--Jacobi quadrature. This is used when max(a,b)>5.
     ab = a + b;
     ii = 2:n-1;
@@ -368,12 +374,12 @@ function JacobiGW( n::Int64, a::Float64, b::Float64 )
     aa = [(b - a)/(2 + ab)
           (b^2 - a^2)./((abi - 2).*abi)
           (b^2 - a^2)./((2*n - 2+ab).*(2*n+ab))]
-    bb = [2*sqrt( (1 + a)*(1 + b)/(ab + 3))/(ab + 2) ; 
+    bb = [2*sqrt( (1 + a)*(1 + b)/(ab + 3))/(ab + 2) ;
           2*sqrt(ii.*(ii + a).*(ii + b).*(ii + ab)./(abi.^2 - 1))./abi]
     TT = diagm(bb,1) + diagm(aa) + diagm(bb,-1) # Jacobi matrix.
     x, V = eig( TT )                       # Eigenvalue decomposition.
     # Quadrature weights:
-    w = V[1,:].^2*( 2^(ab+1)*gamma(a+1)*gamma(b+1)/gamma(2+ab) ); 
+    w = V[1,:].^2*( 2^(ab+1)*gamma(a+1)*gamma(b+1)/gamma(2+ab) );
     w = w/sum(w);
-    x, w
+    x, vec(w)
 end
